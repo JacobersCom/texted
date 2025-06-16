@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <errno.h>
 
+/*defines*/
+#define CTRL_KEY(k) ((k)& 0x1f)
+
 struct termios ogState;
 
 void die(const char *s){ // prints out a error message when called
@@ -51,9 +54,19 @@ void enableRawMode(){
 
 }
 
+char editorReadKey(){ // reading in keypresses
+    int nRead;
+    char c; 
+    
+   while(nRead = read(STDIN_FILENO, &c, 1) != 1 ){
+        if(nRead == -1 && errno != EAGAIN) die ("read"); // error with reading text
+   }
+   return c;
+}
+
 int main(){
     enableRawMode();
-    
+
     
     while(1){
         char c = '\0'; // null 
@@ -67,7 +80,7 @@ int main(){
          
             printf("d% ('%c')\r\n", c, c); // else print out c as char
         }
-        if(c == 'q')break;
+        if(c == CTRL_KEY('q'))break;
     }
     
     
