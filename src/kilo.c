@@ -5,24 +5,27 @@
 #include <stdio.h>
 #include <errno.h>
 
-/*defines*/
+#pragma region defines
+
 #define CTRL_KEY(k) ((k)& 0x1f)
+
+#pragma endregion
 
 struct termios ogState;
 
 void die(const char *s){ // prints out a error message when called
     perror(s);
-    exit(s);
+    exit(1);
 }
 
 void disableRaw(){
-    if(tcsetattr(STDIN_FILENO,TCSAFLUSH,&ogState)== -1);
-    die("tcsetattr");
+    if(tcsetattr(STDIN_FILENO,TCSAFLUSH,&ogState) == -1)
+        die("tcsetattr");
 }
 
 void enableRawMode(){
 
-    if(tcgetattr(STDIN_FILENO, &ogState)== -1); die("tcgetattr");
+    if(tcgetattr(STDIN_FILENO, &ogState) == -1) die("tcgetattr");
     atexit(disableRaw);
     
     struct termios raw = ogState;
@@ -50,37 +53,55 @@ void enableRawMode(){
     raw.c_cc[VMIN] = 0; // min chars to read before before reads return
     raw.c_cc[VTIME] = 1; // the time before timeout
 
-    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)== -1); die("tcsetattr");
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)== -1) die("tcsetattr");
 
 }
+#pragma region Output
 
-char editorReadKey(){ // reading in keypresses
+void editorRefershScreen(){
+    
+    // \1xb is a escape sequence to the terminal (1 byte) the other 3 are [2J
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+}
+
+#pragma region Terminal
+char editorReadKey(){
     int nRead;
     char c; 
     
-   while(nRead = read(STDIN_FILENO, &c, 1) != 1 ){
-        if(nRead == -1 && errno != EAGAIN) die ("read"); // error with reading text
+    /*error handler*/
+   while((nRead = read(STDIN_FILENO, &c, 1)) != 1 ){ 
+        if(nRead == -1 && errno != EAGAIN) die("read"); 
    }
    return c;
 }
+
+#pragma endregion
+
+#pragma region Inputs
+void editorProcessKeypresses(){
+    
+    char c = editorReadKey();
+    
+    /*quick keys*/
+    switch(c){
+        case CTRL_KEY('q'):
+        exit(0);
+        break;
+    }
+}
+#pragma endregion
+
+
+#pragma region init
 
 int main(){
     enableRawMode();
 
     
     while(1){
-        char c = '\0'; // null 
-        if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN); die("read");
-
-        if(iscntrl(c)){ // checks wither c is a control character or not
-         
-            printf("%d\r\n", c); // is it is a control character print out c as a decmial (ASCII values)
-        
-        }else{
-         
-            printf("d% ('%c')\r\n", c, c); // else print out c as char
-        }
-        if(c == CTRL_KEY('q'))break;
+        editorRefershScreen();
+        editorProcessKeypresses();
     }
     
     
@@ -88,3 +109,5 @@ int main(){
 
 
 }
+
+#pragma endregion
