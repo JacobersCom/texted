@@ -4,12 +4,22 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 
 #pragma region defines
+
 #define CTRL_KEY(k) ((k)& 0x1f)
 #pragma endregion
 
-struct termios ogState;
+#pragma region data
+
+struct editorConfig {
+    
+    struct termios ogState;
+}; 
+
+struct editorConfig E;
+#pragma endregion
 
 void die(const char *s){ // prints out a error message when called
     
@@ -23,16 +33,16 @@ void die(const char *s){ // prints out a error message when called
 }
 
 void disableRaw(){
-    if(tcsetattr(STDIN_FILENO,TCSAFLUSH,&ogState) == -1)
+    if(tcsetattr(STDIN_FILENO,TCSAFLUSH,&E.ogState) == -1)
         die("tcsetattr");
 }
 
 void enableRawMode(){
 
-    if(tcgetattr(STDIN_FILENO, &ogState) == -1) die("tcgetattr");
+    if(tcgetattr(STDIN_FILENO, &E.ogState) == -1) die("tcgetattr");
     atexit(disableRaw);
     
-    struct termios raw = ogState;
+    struct termios raw = E.ogState;
     
     // Input flags turned off
     raw.c_iflag &= ~(ISTRIP // causes the 8th bit of each character to be turned off
@@ -62,15 +72,31 @@ void enableRawMode(){
 }
 
 #pragma region Output
+
+void editorDrawRows(){
+    
+    int y; 
+    for (y = 0; y < 24; y++)
+    {
+        write(STDOUT_FILENO, "~/r/n,", 3);
+    }
+    
+}
+
 void editorRefershScreen(){
     
     // \1xb is a escape sequence to the terminal (1 byte) the other 3 are [2J which is a escape command.
     write(STDOUT_FILENO, "\x1b[2J", 4);
    // [H is for Cursor positioning. Takes 2 arugments rows and columns. By default they are both set to 1.
     write(STDOUT_FILENO, "\x1b[H", 3);
+
+    editorDrawRows(); // draw rows
+    write(STDOUT_FILENO, "\x1b[H", 3); // reset coursor
 }
+#pragma endregion
 
 #pragma region Terminal
+
 char editorReadKey(){
     int nRead;
     char c; 
@@ -81,9 +107,24 @@ char editorReadKey(){
    }
    return c;
 }
+
+int getWindowSize (int *row, int *cols){
+
+    struct winsize ws;
+
+    //icotl is input output termial control and TIOCGEWINSZ is Termial input out control get window size
+    if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0){
+        return -1;
+    }else{
+        *cols = ws.ws_col;
+        *row = ws.ws_row;
+        return 0;
+    }
+}
 #pragma endregion
 
 #pragma region Inputs
+
 void editorProcessKeypresses(){
     
     char c = editorReadKey();
@@ -112,7 +153,5 @@ int main(){
     
     
     return 0;
-
-
 }
 #pragma endregion
