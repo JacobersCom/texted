@@ -21,6 +21,43 @@ struct editorConfig {
 struct editorConfig E;
 #pragma endregion
 
+#pragma region Output
+
+void editorDrawRows(){
+    
+    int y; 
+    for (y = 0; y < 24; y++)
+    {
+        write(STDOUT_FILENO, "~/r/n,", 3);
+    }
+    
+}
+
+void editorRefershScreen(){
+    
+    // \1xb is a escape sequence to the terminal (1 byte) the other 3 are [2J which is a escape command.
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    // [H is for Cursor positioning. Takes 2 arugments rows and columns. By default they are both set to 1.
+    write(STDOUT_FILENO, "\x1b[H", 3);
+    
+    editorDrawRows(); // draw rows
+    write(STDOUT_FILENO, "\x1b[H", 3); // reset coursor
+}
+#pragma endregion
+
+#pragma region Terminal
+
+char editorReadKey(){
+    int nRead;
+    char c; 
+    
+    /*error handler*/
+    while((nRead = read(STDIN_FILENO, &c, 1)) != 1 ){ 
+        if(nRead == -1 && errno != EAGAIN) die("read"); 
+    }
+    return c;
+}
+
 void die(const char *s){ // prints out a error message when called
     
     //clear screen 
@@ -71,43 +108,6 @@ void enableRawMode(){
 
 }
 
-#pragma region Output
-
-void editorDrawRows(){
-    
-    int y; 
-    for (y = 0; y < 24; y++)
-    {
-        write(STDOUT_FILENO, "~/r/n,", 3);
-    }
-    
-}
-
-void editorRefershScreen(){
-    
-    // \1xb is a escape sequence to the terminal (1 byte) the other 3 are [2J which is a escape command.
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-   // [H is for Cursor positioning. Takes 2 arugments rows and columns. By default they are both set to 1.
-    write(STDOUT_FILENO, "\x1b[H", 3);
-
-    editorDrawRows(); // draw rows
-    write(STDOUT_FILENO, "\x1b[H", 3); // reset coursor
-}
-#pragma endregion
-
-#pragma region Terminal
-
-char editorReadKey(){
-    int nRead;
-    char c; 
-    
-    /*error handler*/
-   while((nRead = read(STDIN_FILENO, &c, 1)) != 1 ){ 
-        if(nRead == -1 && errno != EAGAIN) die("read"); 
-   }
-   return c;
-}
-
 int getWindowSize (int *row, int *cols){
 
     struct winsize ws;
@@ -139,7 +139,6 @@ void editorProcessKeypresses(){
     }
 }
 #pragma endregion
-
 
 #pragma region init
 int main(){
