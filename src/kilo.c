@@ -6,14 +6,18 @@
 #include <errno.h>
 
 #pragma region defines
-
 #define CTRL_KEY(k) ((k)& 0x1f)
-
 #pragma endregion
 
 struct termios ogState;
 
 void die(const char *s){ // prints out a error message when called
+    
+    //clear screen 
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+    
+    // print error
     perror(s);
     exit(1);
 }
@@ -56,12 +60,14 @@ void enableRawMode(){
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)== -1) die("tcsetattr");
 
 }
-#pragma region Output
 
+#pragma region Output
 void editorRefershScreen(){
     
-    // \1xb is a escape sequence to the terminal (1 byte) the other 3 are [2J
+    // \1xb is a escape sequence to the terminal (1 byte) the other 3 are [2J which is a escape command.
     write(STDOUT_FILENO, "\x1b[2J", 4);
+   // [H is for Cursor positioning. Takes 2 arugments rows and columns. By default they are both set to 1.
+    write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
 #pragma region Terminal
@@ -75,7 +81,6 @@ char editorReadKey(){
    }
    return c;
 }
-
 #pragma endregion
 
 #pragma region Inputs
@@ -86,6 +91,8 @@ void editorProcessKeypresses(){
     /*quick keys*/
     switch(c){
         case CTRL_KEY('q'):
+        write(STDOUT_FILENO, "\x1b[2J", 4);
+        write(STDOUT_FILENO, "\x1b[H", 3);
         exit(0);
         break;
     }
@@ -94,7 +101,6 @@ void editorProcessKeypresses(){
 
 
 #pragma region init
-
 int main(){
     enableRawMode();
 
@@ -109,5 +115,4 @@ int main(){
 
 
 }
-
 #pragma endregion
